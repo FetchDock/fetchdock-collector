@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Issue with a FetchDock server?
+    url: https://github.com/FetchDock/fetchdock-server/issues/new/choose
+    about: File it in fetchdock-server instead.
+  - name: Issue with the browser extension?
+    url: https://github.com/FetchDock/fetchdock-extension/issues/new/choose
+    about: File it in fetchdock-extension instead.
+  - name: Delete a report you shared
+    url: https://reports.fetchdock.dev/policy
+    about: Withdraw it in the extension, or follow the privacy policy. Never post report ids or URLs in a public issue.
