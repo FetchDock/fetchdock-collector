@@ -1,0 +1,19 @@
+# Abuse limits (workspace spec workspace-1-collector-bootstrap): each is off unless its RATE_LIMIT_* variable is set
+# to a number of requests per hour. Payload size limits are part of request validation and always on.
+framework:
+    rate_limiter:
+        # POST /v1/instances, per client IP (the IP only lives in the cache for the window)
+        instance_registration:
+            policy: sliding_window
+            limit: '%app.rate_limit.registration_per_ip%'
+            interval: '1 hour'
+        # POST /v1/reports, per instance
+        instance_reports:
+            policy: sliding_window
+            limit: '%app.rate_limit.reports_per_instance%'
+            interval: '1 hour'
+        # POST /v1/reports/{id}/comments, per instance
+        instance_comments:
+            policy: sliding_window
+            limit: '%app.rate_limit.comments_per_instance%'
+            interval: '1 hour'

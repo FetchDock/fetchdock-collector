@@ -1,0 +1,32 @@
+# Collector policy and ingest rules. Every change here is public (ADR 0014) and goes through a pull request.
+parameters:
+    # Privacy policy versions (policy/<version>.md). Instances and their users must have accepted one of
+    # accepted_versions; current_version is the one GET /v1/policy serves.
+    collector.policy.current_version: '1'
+    collector.policy.accepted_versions: ['1']
+
+    # Reports older than this many months with a terminal status (resolved, wont_fix, duplicate) are purged daily
+    env(REPORT_RETENTION_MONTHS): '24'
+    collector.report_retention_months: '%env(int:REPORT_RETENTION_MONTHS)%'
+
+    # Error categories, derived at ingest from diagnostics.errorMessage: the first matching rule wins, "other" when
+    # none matches. app:reports:recategorize re-applies them after a change.
+    collector.error_categories:
+        - { category: http_403, pattern: '/\bHTTP Error 403\b|\b403 Forbidden\b/i' }
+        - { category: http_429, pattern: '/\bHTTP Error 429\b|\b429 Too Many Requests\b|rate.?limit/i' }
+        - { category: geo_blocked, pattern: '/available in your (country|region)|geo.?restrict|geo.?block/i' }
+        - { category: login_required, pattern: '/log ?in required|sign in to confirm|requires? (authentication|login)|cookies? (are|is) (needed|required)|private (video|account|post)/i' }
+        - { category: unsupported_url, pattern: '/unsupported url|no suitable extractor/i' }
+        - { category: extractor_error, pattern: '/unable to extract|extractor error|KeyError|IndexError/i' }
+
+    # Abuse limits, requests per hour; empty or 0 is off (the default)
+    env(RATE_LIMIT_REGISTRATION_PER_IP): '0'
+    env(RATE_LIMIT_REPORTS_PER_INSTANCE): '0'
+    env(RATE_LIMIT_COMMENTS_PER_INSTANCE): '0'
+    app.rate_limit.registration_per_ip: '%env(int:RATE_LIMIT_REGISTRATION_PER_IP)%'
+    app.rate_limit.reports_per_instance: '%env(int:RATE_LIMIT_REPORTS_PER_INSTANCE)%'
+    app.rate_limit.comments_per_instance: '%env(int:RATE_LIMIT_COMMENTS_PER_INSTANCE)%'
+
+    # Mock data (app:fixtures:seed) is only allowed where this is 1: dev, test and staging, never production
+    env(COLLECTOR_ALLOW_FIXTURES): '0'
+    collector.allow_fixtures: '%env(bool:COLLECTOR_ALLOW_FIXTURES)%'

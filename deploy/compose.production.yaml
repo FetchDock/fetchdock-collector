@@ -1,0 +1,10 @@
+# Production additions on top of deploy/compose.yaml. Production never loads mock data: app:fixtures:seed refuses to
+# run without COLLECTOR_ALLOW_FIXTURES=1, which is forced off here.
+services:
+  php:
+    environment:
+      COLLECTOR_ALLOW_FIXTURES: "0"
+      COLLECTOR_SEED_ON_START: "0"
+  worker:
+    environment:
+      COLLECTOR_ALLOW_FIXTURES: "0"
