@@ -1,0 +1,9 @@
+# Factories (src/Factory) build the mock data of app:fixtures:seed and the tests' data
+zenstruck_foundry:
+    enable_auto_refresh_with_lazy_objects: true
+    persistence:
+        # Flush only once per call of `PersistentObjectFactory::create()`
+        flush_once: true
+    faker:
+        # Repeatable mock data
+        seed: 1416

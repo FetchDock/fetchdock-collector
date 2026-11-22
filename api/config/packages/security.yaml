@@ -1,0 +1,59 @@
+security:
+    providers:
+        oidc_user_provider:
+            id: App\Security\OidcUserProvider
+    firewalls:
+        dev:
+            pattern: ^/(_(profiler|wdt)|css|images|js)/
+            security: false
+
+        # Maintainers only (ADR 0014): an OpenID Connect access token from the IdP (Authentik), roles from its claims.
+        # The ingest API (/v1/...) gets its own firewall for instance secrets with the first endpoints.
+        main:
+            lazy: true
+            stateless: true
+            provider: oidc_user_provider
+            access_token:
+                token_handler:
+                    oidc:
+                        claim: '%oidc.claim%'
+                        audience: '%oidc.audience%'
+                        issuers: ['%oidc.issuer%']
+                        algorithms: ['ES256', 'RS256']
+                        discovery:
+                            base_uri: '%oidc.discovery_base_uri%'
+                            cache:
+                                id: cache.app
+
+    role_hierarchy:
+        # Triage reports
+        ROLE_MAINTAINER: []
+        # Also stats, instances, blocking instances and deleting reports
+        ROLE_ADMIN: [ROLE_MAINTAINER]
+
+    # Only the *first* access control that matches is used
+    access_control:
+        - { path: ^/$, roles: PUBLIC_ACCESS }
+        - { path: ^/docs, roles: PUBLIC_ACCESS }
+        - { path: ^/contexts, roles: PUBLIC_ACCESS }
+        - { path: ^/\.well-known, roles: PUBLIC_ACCESS }
+        # Maintainers are the only users: a valid token without ROLE_MAINTAINER is rejected
+        - { path: ^/, roles: ROLE_MAINTAINER }
+
+when@test:
+    security:
+        firewalls:
+            main:
+                provider: users_in_memory
+                http_basic:
+                    realm: 'Secured Test Area'
+        providers:
+            users_in_memory:
+                memory:
+                    users:
+                        maintainer: { password: 'maintainerpass', roles: 'ROLE_MAINTAINER' }
+                        admin: { password: 'adminpass', roles: 'ROLE_ADMIN' }
+                        # A signed-in user without a collector role
+                        user: { password: 'userpass', roles: 'ROLE_USER' }
+        password_hashers:
+            Symfony\Component\Security\Core\User\InMemoryUser: plaintext

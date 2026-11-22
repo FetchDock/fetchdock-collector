@@ -1,0 +1,15 @@
+# Staging additions on top of deploy/compose.yaml (ADR 0014).
+#
+# Staging never receives production data. Every time the php container starts (every deploy, but also a restart),
+# the entrypoint runs migrations and then app:fixtures:seed, which replaces all data with mock data. Instances
+# registered against staging (e.g. a server's staging) therefore have to register again after a deploy.
+services:
+  php:
+    environment:
+      COLLECTOR_ALLOW_FIXTURES: "1"
+      COLLECTOR_SEED_ON_START: "1"
+      # Changes on every deploy, so Compose recreates the container and the seed runs again
+      DEPLOY_ID: ${DEPLOY_ID:-manual}
+  worker:
+    environment:
+      COLLECTOR_ALLOW_FIXTURES: "1"

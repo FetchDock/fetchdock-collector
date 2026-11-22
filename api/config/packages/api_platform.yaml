@@ -1,0 +1,34 @@
+api_platform:
+    title: FetchDock Collector
+    description: |
+        Receives failure reports that FetchDock instances forward with their users' consent.
+        Instances use the versioned ingest API (/v1/...); the maintainer API (/admin/...) is internal to the collector PWA.
+    version: 0.1.0
+    show_webby: false
+    mercure:
+        include_type: true
+    defaults:
+        stateless: true
+        pagination_client_enabled: true
+        pagination_client_items_per_page: true
+        maximum_items_per_page: 500
+        cache_headers:
+            vary: ['Content-Type', 'Authorization', 'Origin']
+    collection:
+        pagination:
+            enabled_parameter_name: 'pagination'
+            items_per_page_parameter_name: 'itemsPerPage'
+    formats:
+        jsonld: ['application/ld+json']
+        json: ['application/json']
+    docs_formats:
+        jsonld: ['application/ld+json']
+        jsonopenapi: ['application/vnd.openapi+json']
+        html: ['text/html']
+    patch_formats:
+        json: ['application/merge-patch+json']
+    swagger:
+        api_keys:
+            Bearer:
+                name: Authorization
+                type: header

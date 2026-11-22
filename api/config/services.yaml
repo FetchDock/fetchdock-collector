@@ -1,0 +1,41 @@
+# This file is the entry point to configure your own services.
+# Files in the packages/ subdirectory configure your dependencies.
+parameters:
+    # Lifetime in seconds of Mercure subscriber tokens issued to maintainers (POST /users/me/subscription-token)
+    env(MERCURE_SUBSCRIPTION_TOKEN_TTL): '3600'
+    app.mercure.subscription_token_ttl: '%env(int:MERCURE_SUBSCRIPTION_TOKEN_TTL)%'
+    # Mercure JWT keys: MERCURE_JWT_SECRET is the hub's publisher key, MERCURE_SUBSCRIBER_JWT_SECRET its optional
+    # subscriber key (defaults to the publisher key)
+    app.mercure.publisher_jwt_secret: '%env(MERCURE_JWT_SECRET)%'
+    app.mercure.subscriber_jwt_secret: '%env(default:app.mercure.publisher_jwt_secret:MERCURE_SUBSCRIBER_JWT_SECRET)%'
+
+    # Maintainer login (OpenID Connect); placeholders keep the container compiling when OIDC isn't configured
+    oidc_defaults_placeholder: 'unset'
+    oidc.audience: '%env(default:oidc_defaults_placeholder:OIDC_CLIENT_ID)%'
+    oidc.issuer: '%env(default:oidc_defaults_placeholder:OIDC_ISSUER)%'
+    oidc.discovery_base_uri: '%env(default:oidc_defaults_placeholder:OIDC_DISCOVERY_BASE_URI)%'
+    oidc_defaults_claim: 'sub'
+    oidc.claim: '%env(default:oidc_defaults_claim:OIDC_CLAIM)%'
+
+    app_version_default: 'dev'
+    app.version: '%env(default:app_version_default:APP_VERSION)%'
+
+services:
+    _defaults:
+        autowire: true
+        autoconfigure: true
+
+    App\:
+        resource: '../src/'
+        exclude: '../src/{DependencyInjection,Entity,Kernel.php}'
+
+    # Publishes to the Mercure hub with the publisher key, replacing the provider the bundle builds from the subscriber
+    # key (see config/packages/mercure.yaml)
+    app.mercure.publisher_token_provider:
+        class: Symfony\Component\Mercure\Jwt\FactoryTokenProvider
+        decorates: mercure.hub.default.jwt.provider
+        arguments:
+            $factory: !service
+                class: Symfony\Component\Mercure\Jwt\LcobucciFactory
+                arguments: ['%app.mercure.publisher_jwt_secret%']
+            $publish: ['*']

@@ -1,0 +1,147 @@
+name: Publish Docker images
+on:
+  release: 
+    types: [published]
+
+env:
+  REGISTRY: ghcr.io
+
+jobs:
+    publish:
+        name: Publish
+        runs-on: ubuntu-latest
+        outputs:
+            version: ${{ steps.meta.outputs.version }}
+        permissions: 
+            contents: read
+            packages: write
+            id-token: write
+        steps:
+        -
+            # docker/metadata-action derives the image tags from the tag name only, not from the
+            # release's "pre-release" flag. A pre-release without a pre-release suffix (e.g. 0.7.0)
+            # would move the major.minor and latest image tags, and a non-semver tag produces no tags.
+            name: Validate release tag
+            env:
+              TAG: ${{ github.event.release.tag_name }}
+              PRERELEASE: ${{ github.event.release.prerelease }}
+            run: |
+              set -eu
+              # Semantic version, optionally prefixed with "v" (as accepted by docker/metadata-action type=semver)
+              semver='^v?(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)\.(0|[1-9][0-9]*)(-[0-9A-Za-z.-]+)?(\+[0-9A-Za-z.-]+)?$'
+              prerelease_suffix='^v?[0-9]+\.[0-9]+\.[0-9]+-[0-9A-Za-z.-]+'
+
+              if ! printf '%s' "$TAG" | grep -Eq "$semver"; then
+                echo "::error title=Invalid release tag::Tag '$TAG' is not a semantic version (e.g. 0.7.0 or 0.7.0-rc.1). No image tags would be generated."
+                exit 1
+              fi
+
+              if [ "$PRERELEASE" = "true" ] && ! printf '%s' "$TAG" | grep -Eq "$prerelease_suffix"; then
+                echo "::error title=Pre-release without pre-release tag::Release is marked as pre-release, but tag '$TAG' has no pre-release suffix. It would move the major.minor and latest image tags. Use e.g. '$TAG-rc.1'."
+                exit 1
+              fi
+
+              if [ "$PRERELEASE" = "false" ] && printf '%s' "$TAG" | grep -Eq "$prerelease_suffix"; then
+                echo "::warning title=Pre-release tag on a stable release::Tag '$TAG' has a pre-release suffix but the release isn't marked as pre-release. Only the '$TAG' image tag will be published."
+              fi
+
+              echo "Release tag '$TAG' (pre-release: $PRERELEASE) is valid."
+        -
+            name: Checkout
+            uses: actions/checkout@v7
+        -
+            name: Docker meta
+            id: meta
+            uses: docker/metadata-action@v6
+            with:
+              tags: |
+                type=ref,event=branch
+                type=ref,event=pr
+                type=semver,pattern={{version}}
+                type=semver,pattern={{major}}.{{minor}}
+        -
+            name: Set registry name
+            run: echo "IMAGE_PREFIX=$(echo ${{ github.repository }} | tr '[:upper:]' '[:lower:]')" >> $GITHUB_ENV
+        -
+            name: Set up Docker Buildx
+            uses: docker/setup-buildx-action@v4
+        -
+            name: Log in to GitHub Container Registry
+            uses: docker/login-action@v4
+            with:
+              registry: ${{ env.REGISTRY }}
+              username: ${{ github.actor }}
+              password: ${{ secrets.GITHUB_TOKEN }}
+        -
+            name: Build and push Docker images
+            uses: docker/bake-action@v7
+            env:
+              IMAGES_PREFIX: ${{ env.REGISTRY }}/${{ env.IMAGE_PREFIX }}
+              TAGS: ${{ join(fromJSON(steps.meta.outputs.json).tags,',') }}
+              # compose.prod.yaml requires the Mercure secret, and bake interpolates the whole file although it only
+              # uses the build sections: a placeholder satisfies it and never ends up in the images
+              CADDY_MERCURE_JWT_SECRET: bake-placeholder-not-a-secret
+            with:
+              pull: true
+              load: true
+              push: true
+              files: |
+                  compose.yaml
+                  compose.prod.yaml
+                  ./docker-bake.hcl
+                  cwd://${{ steps.meta.outputs.bake-file-tags }}
+              set: |
+                  api.cache-from=type=gha,scope=api-${{github.ref}}
+                  api.cache-from=type=gha,scope=api-refs/heads/main
+                  api.cache-to=type=gha,scope=api-${{github.ref}},mode=max
+                  pwa.cache-from=type=gha,scope=pwa-${{github.ref}}
+                  pwa.cache-from=type=gha,scope=pwa-refs/heads/main
+                  pwa.cache-to=type=gha,scope=pwa-${{github.ref}},mode=max
+                  api.args.APP_VERSION=${{ steps.meta.outputs.version }}
+                  pwa.args.APP_VERSION=${{ steps.meta.outputs.version }}
+
+    # Only the newest stable version goes to production. A maintenance release of an older line (e.g. 0.7.5 after
+    # 0.8.0) still publishes its images but must not replace production. GitHub marks newly published releases as
+    # "Latest" by default, so this compares semver tags instead of asking the API for the latest release.
+    production-check:
+        name: Check production eligibility
+        if: ${{ !github.event.release.prerelease }}
+        runs-on: ubuntu-latest
+        permissions:
+            contents: read
+        outputs:
+            deploy: ${{ steps.check.outputs.deploy }}
+        steps:
+        -
+            name: Compare with the newest stable tag
+            id: check
+            env:
+              GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+              TAG: ${{ github.event.release.tag_name }}
+            run: |
+              set -euo pipefail
+              current="${TAG#v}"
+              newest=$(gh api --paginate "repos/${GITHUB_REPOSITORY}/git/matching-refs/tags" -q '.[].ref' \
+                | sed 's#^refs/tags/##' | grep -E '^v?[0-9]+\.[0-9]+\.[0-9]+$' | sed 's/^v//' | sort -V | tail -n1)
+
+              if [ "$current" = "$newest" ]; then
+                echo "deploy=true" >> "$GITHUB_OUTPUT"
+                echo "$TAG is the newest stable release; deploying to production." >> "$GITHUB_STEP_SUMMARY"
+              else
+                echo "deploy=false" >> "$GITHUB_OUTPUT"
+                echo "::notice title=Production deploy skipped::$TAG is not the newest stable release ($newest). Images were published; production stays as it is."
+                echo "**Production deploy skipped:** \`$TAG\` is not the newest stable release (\`$newest\`). Images were published." >> "$GITHUB_STEP_SUMMARY"
+              fi
+
+    # Waits for approval in the "production" environment (required reviewers).
+    deploy-production:
+        name: Production
+        needs: [publish, production-check]
+        if: ${{ needs.production-check.outputs.deploy == 'true' }}
+        uses: ./.github/workflows/deploy.yml
+        with:
+            environment: production
+            git-ref: refs/tags/${{ github.event.release.tag_name }}
+            docker-tag: ${{ needs.publish.outputs.version }}
+            expected-version: ${{ needs.publish.outputs.version }}
+        secrets: inherit

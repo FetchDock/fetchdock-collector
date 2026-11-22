@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+
+<!-- https://phpunit.readthedocs.io/en/latest/configuration.html -->
+<phpunit xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:noNamespaceSchemaLocation="vendor/phpunit/phpunit/phpunit.xsd"
+         backupGlobals="false"
+         colors="true"
+         bootstrap="tests/bootstrap.php"
+         failOnDeprecation="false"
+         displayDetailsOnTestsThatTriggerDeprecations="true"
+         displayDetailsOnTestsThatTriggerErrors="true"
+         displayDetailsOnTestsThatTriggerWarnings="true"
+         beStrictAboutTestsThatDoNotTestAnything="true"
+>
+    <php>
+        <ini name="display_errors" value="1" />
+        <ini name="error_reporting" value="-1" />
+        <!-- The suite boots many kernels; its peak memory is above the default 128M -->
+        <ini name="memory_limit" value="512M" />
+        <server name="APP_ENV" value="test" force="true" />
+        <server name="SHELL_VERBOSITY" value="-1" />
+        <server name="SYMFONY_PHPUNIT_REMOVE" value="" />
+        <server name="SYMFONY_PHPUNIT_VERSION" value="9.6" />
+
+        <!-- ###+ symfony/routing ### -->
+        <!-- Configure how to generate URLs in non-HTTP contexts, such as CLI commands. -->
+        <!-- See https://symfony.com/doc/current/routing.html#generating-urls-in-commands -->
+        <env name="DEFAULT_URI" value="http://localhost"/>
+        <!-- ###- symfony/routing ### -->
+    </php>
+
+    <testsuites>
+        <testsuite name="Project Test Suite">
+            <directory>tests</directory>
+        </testsuite>
+    </testsuites>
+
+    <source>
+        <include>
+            <directory suffix=".php">src</directory>
+        </include>
+        <exclude>
+            <file>src/Kernel.php</file>
+        </exclude>
+    </source>
+
+    <coverage
+        includeUncoveredFiles="true"
+    >
+
+        <report>
+            <clover outputFile="build/logs/clover.xml"/>
+            <cobertura outputFile="build/logs/cobertura.xml"/>
+            <html outputDirectory="build/logs/coverage" lowUpperBound="35" highLowerBound="70"/>
+        </report>
+    </coverage>
+    <logging>
+        <junit outputFile="build/logs/junit.xml"/>
+        <testdoxHtml outputFile="build/logs/testdox.html"/>
+    </logging>
+
+<!--    <listeners>-->
+<!--        <listener class="Symfony\Bridge\PhpUnit\SymfonyTestsListener" />-->
+<!--        <listener class="Symfony\Bridge\PhpUnit\CoverageListener" />-->
+<!--    </listeners>-->
+
+    <extensions>
+        <bootstrap class="Zenstruck\Foundry\PHPUnit\FoundryExtension" />
+        <bootstrap class="Symfony\Bridge\PhpUnit\SymfonyExtension">
+            <parameter name="clock-mock-namespaces" value="App" />
+            <parameter name="dns-mock-namespaces" value="App" />
+        </bootstrap>
+    </extensions>
+</phpunit>
