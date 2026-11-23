@@ -37,6 +37,8 @@ services:
       OIDC_CLIENT_ID: ${OIDC_AUDIENCE:?}
       OIDC_ISSUER: ${OIDC_ISSUER:?}
       OIDC_DISCOVERY_BASE_URI: ${OIDC_DISCOVERY_BASE_URI:?}
+      OIDC_ADMIN_GROUPS: ${OIDC_ADMIN_GROUPS:-}
+      OIDC_MAINTAINER_GROUPS: ${OIDC_MAINTAINER_GROUPS:-}
     volumes:
       # Caddy state and the access log (rotated, kept 30 days)
       - caddy_data:/data
