@@ -4,6 +4,7 @@ import { CustomRoutes, Resource } from "react-admin";
 import { Route } from "react-router-dom";
 import authProvider from "../common/authProvider";
 import { getAuthHeaders } from "../common/api";
+import { resumeSession } from "../common/oidc";
 import { hasRole, ROLE_ADMIN } from "../common/permissions";
 import Dashboard from "./Dashboard";
 import Integrity from "./Integrity";
@@ -13,10 +14,10 @@ import LoginPage from "./LoginPage";
 import { INSTANCES, REPORTS, ReportEdit, ReportList, ReportShow } from "./reports";
 import Stats from "./Stats";
 
-const fetchHydra = (url: URL, options?: Record<string, any>) =>
+const fetchHydra = async (url: URL, options?: Record<string, any>) =>
   baseFetchHydra(url, {
     ...options,
-    headers: getAuthHeaders,
+    headers: await getAuthHeaders(),
   });
 
 const dataProvider = hydraDataProvider({
@@ -25,8 +26,12 @@ const dataProvider = hydraDataProvider({
   useEmbedded: true,
   // Live updates (Mercure, POST /users/me/subscription-token) are a follow-up
   mercure: false,
-  apiDocumentationParser: () => parseHydraDocumentation(window.origin, { headers: getAuthHeaders }),
+  // The entrypoint and the docs are public: no token needed, so the docs load in parallel with the session checks
+  apiDocumentationParser: () => parseHydraDocumentation(window.origin),
 });
+
+// Keeps a session from an earlier visit alive (background token renewal)
+resumeSession();
 
 /** The maintainer PWA: report triage for ROLE_MAINTAINER, instances, stats and integrity for ROLE_ADMIN */
 const App = () => (
@@ -38,6 +43,7 @@ const App = () => (
     dashboard={Dashboard}
     layout={Layout}
     requireAuth
+    disableTelemetry
     title="FetchDock Collector"
   >
     {(permissions: unknown) => (

@@ -33,12 +33,81 @@ export const userManager = (): UserManager => {
       scope: "openid profile email offline_access",
       // Survives reloads and new tabs; cleared on logout
       userStore: new WebStorageStateStore({ store: window.localStorage }),
-      // Renews the access token with the refresh token before it expires
+      // Renews the access token with the refresh token before it expires. That needs the IdP to issue refresh tokens
+      // (Authentik: the offline_access scope mapping on the provider). There's deliberately no silent_redirect_uri:
+      // Authentik's authorization flow pages send X-Frame-Options: DENY, so an iframe renewal can only time out.
       automaticSilentRenew: true,
     });
   }
 
   return manager;
+};
+
+/** Seconds before expiry at which a token counts as expired, so a request doesn't reach the API with a dying token */
+const EXPIRY_MARGIN = 10;
+
+/** Where to go back to after signing in, passed through the sign-in redirect's state */
+export type SigninState = { returnTo?: string };
+
+/** Signs in through the IdP, coming back to the current admin route (e.g. "#/admin/reports") */
+export const signinRedirect = (): Promise<void> =>
+  userManager().signinRedirect({ state: { returnTo: window.location.hash } satisfies SigninState });
+
+let renewal: Promise<User | null> | null = null;
+
+/**
+ * Renews the access token with the refresh token, once at a time. Without one (the IdP didn't issue it, or it expired),
+ * the stored user is removed and the browser goes through the IdP again: with an IdP session that's a quick round trip
+ * back to the current route, instead of the login page. Resolves to null when there's no renewed session.
+ */
+export const renewSession = (): Promise<User | null> => {
+  renewal ??= (async () => {
+    const hadRefreshToken = !!storedUser()?.refresh_token;
+    try {
+      return await userManager().signinSilent();
+    } catch (e) {
+      if (hadRefreshToken) {
+        console.warn("Token renewal failed:", e);
+      }
+      await userManager().removeUser();
+      // Navigates away; if it can't (IdP unreachable), the caller falls back to the login page
+      await signinRedirect().catch((redirectError) => console.error("Sign-in redirect failed:", redirectError));
+
+      return null;
+    }
+  })().finally(() => {
+    renewal = null;
+  });
+
+  return renewal;
+};
+
+/**
+ * Starts the background renewal of a stored session. oidc-client-ts only schedules it once a UserManager exists, and
+ * without this a reloaded page wouldn't create one until the token had already expired.
+ */
+export const resumeSession = (): void => {
+  try {
+    if (storedUser()) {
+      userManager();
+    }
+  } catch (e) {
+    // Incomplete OIDC settings: the login page reports them
+    console.error(e);
+  }
+};
+
+/** A valid access token, renewed first when it's (about to be) expired; null when not signed in */
+export const accessToken = async (): Promise<string | null> => {
+  const user = storedUser();
+  if (!user) {
+    return null;
+  }
+  if (undefined === user.expires_in || user.expires_in > EXPIRY_MARGIN) {
+    return user.access_token;
+  }
+
+  return (await renewSession())?.access_token ?? null;
 };
 
 /**

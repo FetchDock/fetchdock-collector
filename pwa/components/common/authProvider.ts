@@ -1,8 +1,8 @@
 import type { AuthProvider } from "react-admin";
-import { storedUser, userManager } from "./oidc";
+import { renewSession, storedUser, userManager } from "./oidc";
 import { fetchRoles, hasRole, ROLE_MAINTAINER } from "./permissions";
 
-const authProvider: AuthProvider & { handleCallback: () => Promise<void> } = {
+const authProvider: AuthProvider = {
   login: async () => {
     await userManager().signinRedirect();
   },
@@ -22,14 +22,9 @@ const authProvider: AuthProvider & { handleCallback: () => Promise<void> } = {
     if (!user) {
       throw { redirectTo: "/login", message: false };
     }
-    if (user.expired) {
-      // signinSilent uses the refresh token (offline_access)
-      try {
-        await userManager().signinSilent();
-      } catch {
-        await userManager().removeUser();
-        throw { redirectTo: "/login", message: false };
-      }
+    // Refresh token or hidden iframe, see renewSession()
+    if (user.expired && !(await renewSession())) {
+      throw { redirectTo: "/login", message: false };
     }
   },
   // The maintainer's effective roles from GET /users/me (see ./permissions)
@@ -44,11 +39,6 @@ const authProvider: AuthProvider & { handleCallback: () => Promise<void> } = {
       id: user.profile.sub,
       fullName: user.profile.name ?? user.profile.preferred_username ?? user.profile.sub,
     };
-  },
-  handleCallback: async () => {
-    await userManager().signinRedirectCallback();
-    // Remove ?code&state from the URL
-    window.history.replaceState({}, window.document.title, window.location.pathname);
   },
 };
 
