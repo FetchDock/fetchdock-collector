@@ -33,10 +33,19 @@ export const userManager = (): UserManager => {
       scope: "openid profile email offline_access",
       // Survives reloads and new tabs; cleared on logout
       userStore: new WebStorageStateStore({ store: window.localStorage }),
-      // Renews the access token with the refresh token before it expires. That needs the IdP to issue refresh tokens
-      // (Authentik: the offline_access scope mapping on the provider). There's deliberately no silent_redirect_uri:
-      // Authentik's authorization flow pages send X-Frame-Options: DENY, so an iframe renewal can only time out.
-      automaticSilentRenew: true,
+      // Renewal is ours (below): oidc-client-ts's automatic renewal falls back to a hidden iframe without a refresh
+      // token, and that can only fail (Authentik's pages send X-Frame-Options: DENY, our CSP has frame-src 'none').
+      automaticSilentRenew: false,
+    });
+    // Renews the access token with the refresh token before it expires. That needs the IdP to issue refresh tokens
+    // (Authentik: the offline_access scope mapping on the provider). Without one, the next request renews through the
+    // IdP (see renewSession()).
+    manager.events.addAccessTokenExpiring(() => {
+      if (storedUser()?.refresh_token) {
+        userManager()
+          .signinSilent()
+          .catch((e) => console.warn("Background token renewal failed:", e));
+      }
     });
   }
 
@@ -64,6 +73,11 @@ export const renewSession = (): Promise<User | null> => {
   renewal ??= (async () => {
     const hadRefreshToken = !!storedUser()?.refresh_token;
     try {
+      // Without a refresh token, signinSilent() would try a hidden iframe, which only times out (about 10 s)
+      if (!hadRefreshToken) {
+        throw new Error("No refresh token");
+      }
+
       return await userManager().signinSilent();
     } catch (e) {
       if (hadRefreshToken) {
@@ -83,13 +97,16 @@ export const renewSession = (): Promise<User | null> => {
 };
 
 /**
- * Starts the background renewal of a stored session. oidc-client-ts only schedules it once a UserManager exists, and
- * without this a reloaded page wouldn't create one until the token had already expired.
+ * Starts the background renewal of a stored session: it needs the user loaded into a UserManager, and without this a
+ * reloaded page wouldn't load it until the token had already expired.
  */
 export const resumeSession = (): void => {
   try {
     if (storedUser()) {
-      userManager();
+      // Loading the user arms the access token expiry events the background renewal listens to
+      userManager()
+        .getUser()
+        .catch((e) => console.error(e));
     }
   } catch (e) {
     // Incomplete OIDC settings: the login page reports them

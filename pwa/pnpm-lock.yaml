@@ -16,6 +16,9 @@ importers:
       '@api-platform/api-doc-parser':
         specifier: ^0.16.12
         version: 0.16.12(web-streams-polyfill@3.3.3)
+      '@mui/material':
+        specifier: 9.5.0
+        version: 9.5.0(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@emotion/styled@11.14.1(@emotion/react@11.14.0(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react@19.3.1))(@types/react@19.3.0)(react-dom@19.3.1(react@19.3.1))(react@19.3.1)
       '@next/env':
         specifier: ^16.4.6
         version: 16.4.6

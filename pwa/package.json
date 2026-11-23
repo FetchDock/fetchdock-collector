@@ -12,6 +12,7 @@
   "dependencies": {
     "@api-platform/admin": "^4.0.9",
     "@api-platform/api-doc-parser": "^0.16.12",
+    "@mui/material": "9.5.0",
     "@next/env": "^16.4.6",
     "@tailwindcss/postcss": "^4.3.5",
     "next": "15.5.29",
