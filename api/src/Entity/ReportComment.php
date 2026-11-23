@@ -5,6 +5,7 @@ namespace App\Entity;
 use App\Repository\ReportCommentRepository;
 use Doctrine\DBAL\Types\Types;
 use Doctrine\ORM\Mapping as ORM;
+use Symfony\Component\Serializer\Attribute\Groups;
 use Symfony\Component\Uid\Uuid;
 
 /**
@@ -15,6 +16,7 @@ class ReportComment
 {
     #[ORM\Id]
     #[ORM\Column(type: 'uuid', unique: true)]
+    #[Groups(['admin_report:read'])]
     private Uuid $id;
 
     #[ORM\ManyToOne(inversedBy: 'comments')]
@@ -22,13 +24,16 @@ class ReportComment
     private Report $report;
 
     #[ORM\Column(type: Types::TEXT)]
+    #[Groups(['admin_report:read'])]
     private string $comment;
 
     /** When the comment was written on the instance */
     #[ORM\Column]
+    #[Groups(['admin_report:read'])]
     private \DateTimeImmutable $createdAt;
 
     #[ORM\Column]
+    #[Groups(['admin_report:read'])]
     private \DateTimeImmutable $receivedAt;
 
     public function __construct(Report $report, string $comment, \DateTimeImmutable $createdAt, ?\DateTimeImmutable $receivedAt = null)
