@@ -1,73 +1,38 @@
 #syntax=docker/dockerfile:1
 
 # Adapted from https://github.com/dunglas/symfony-docker, ported from fetchdock-server (ADR 0014)
-
-# Versions
-FROM dunglas/frankenphp:1.12-php8.5 AS frankenphp_upstream
+# Base images are built daily in https://github.com/FetchDock/fetchdock-base-images
 
 # The different stages of this Dockerfile are meant to be built into separate images
 # https://docs.docker.com/develop/develop-images/multistage-build/#stop-at-a-specific-build-stage
 # https://docs.docker.com/compose/compose-file/#target
 
 # Base FrankenPHP image
-FROM frankenphp_upstream AS frankenphp_base
+FROM ghcr.io/fetchdock/fetchdock-base-images/frankenphp:1.12-php8.5 AS frankenphp_base
 ARG APP_VERSION=dev
 ENV APP_VERSION=${APP_VERSION}
 
 WORKDIR /app
-
-# persistent / runtime deps
-# hadolint ignore=DL3008
-RUN apt-get update && apt-get install --no-install-recommends -y \
-	acl \
-	curl \
-	file \
-	gettext \
-	git \
-	&& rm -rf /var/lib/apt/lists/*
-
-# https://getcomposer.org/doc/03-cli.md#composer-allow-superuser
-ENV COMPOSER_ALLOW_SUPERUSER=1
-
-ENV PHP_INI_SCAN_DIR=":$PHP_INI_DIR/app.conf.d"
-
-RUN set -eux; \
-	install-php-extensions \
-		@composer \
-		apcu \
-		intl \
-		opcache \
-		zip \
-		pdo_pgsql \
-	;
 
 COPY --link frankenphp/conf.d/10-app.ini $PHP_INI_DIR/app.conf.d/
 COPY --link --chmod=755 frankenphp/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
 COPY --link frankenphp/Caddyfile /etc/frankenphp/Caddyfile
 
 ENTRYPOINT ["docker-entrypoint"]
-
-HEALTHCHECK --start-period=60s CMD ["sh", "-c", "curl -f http://localhost:2019/metrics || exit 1"]
-CMD [ "frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile" ]
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile"]
 
 # Dev FrankenPHP image
-FROM frankenphp_base AS frankenphp_dev
+FROM ghcr.io/fetchdock/fetchdock-base-images/frankenphp-dev:1.12-php8.5 AS frankenphp_dev
+ARG APP_VERSION=dev
+ENV APP_VERSION=${APP_VERSION}
 
-ENV APP_ENV=dev
-ENV XDEBUG_MODE=off
-ENV FRANKENPHP_WORKER_CONFIG=watch
-VOLUME /app/var/
-
-RUN mv "$PHP_INI_DIR/php.ini-development" "$PHP_INI_DIR/php.ini"
-
-RUN set -eux; \
-	install-php-extensions \
-		xdebug \
-	;
-
+COPY --link frankenphp/conf.d/10-app.ini $PHP_INI_DIR/app.conf.d/
 COPY --link frankenphp/conf.d/20-app.dev.ini $PHP_INI_DIR/app.conf.d/
+COPY --link --chmod=755 frankenphp/docker-entrypoint.sh /usr/local/bin/docker-entrypoint
+COPY --link frankenphp/Caddyfile /etc/frankenphp/Caddyfile
 
-CMD [ "frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile", "--watch" ]
+ENTRYPOINT ["docker-entrypoint"]
+CMD ["frankenphp", "run", "--config", "/etc/frankenphp/Caddyfile", "--watch"]
 
 # Prod FrankenPHP image
 FROM frankenphp_base AS frankenphp_prod
