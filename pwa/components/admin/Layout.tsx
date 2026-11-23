@@ -10,6 +10,7 @@ const Menu = () => {
       <RaMenu.DashboardItem />
       <RaMenu.ResourceItems />
       {hasRole(permissions, ROLE_ADMIN) && <RaMenu.Item to="/stats" primaryText="Stats" />}
+      {hasRole(permissions, ROLE_ADMIN) && <RaMenu.Item to="/integrity" primaryText="Integrity" />}
     </RaMenu>
   );
 };

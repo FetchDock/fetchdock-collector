@@ -1,5 +1,6 @@
 import Head from "next/head";
 import Link from "next/link";
+import IntegrityStatus from "../components/IntegrityStatus";
 
 const Home = () => (
   <main className="mx-auto max-w-2xl px-4 py-16 font-sans">
@@ -24,6 +25,7 @@ const Home = () => (
         </Link>
       </li>
     </ul>
+    <IntegrityStatus />
   </main>
 );
 

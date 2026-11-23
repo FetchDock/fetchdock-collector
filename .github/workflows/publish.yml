@@ -98,7 +98,21 @@ jobs:
                   pwa.cache-from=type=gha,scope=pwa-refs/heads/main
                   pwa.cache-to=type=gha,scope=pwa-${{github.ref}},mode=max
                   api.args.APP_VERSION=${{ steps.meta.outputs.version }}
+                  api.args.GIT_SHA=${{ github.sha }}
                   pwa.args.APP_VERSION=${{ steps.meta.outputs.version }}
+
+    # Publishes the image's integrity manifest digest (ADR 0013, collector#5) to the integrity-data branch and the release
+    integrity-digest:
+        name: Integrity digest
+        needs: publish
+        permissions:
+            contents: write
+            packages: read
+        uses: ./.github/workflows/integrity-digest.yml
+        with:
+            image-tag: ${{ needs.publish.outputs.version }}
+            version: ${{ needs.publish.outputs.version }}
+            release-tag: ${{ github.event.release.tag_name }}
 
     # Only the newest stable version goes to production. A maintenance release of an older line (e.g. 0.7.5 after
     # 0.8.0) still publishes its images but must not replace production. GitHub marks newly published releases as
@@ -136,7 +150,8 @@ jobs:
     # Waits for approval in the "production" environment (required reviewers).
     deploy-production:
         name: Production
-        needs: [publish, production-check]
+        # After the digest upload, so the new containers read "verified" on their first check
+        needs: [publish, integrity-digest, production-check]
         if: ${{ needs.production-check.outputs.deploy == 'true' }}
         uses: ./.github/workflows/deploy.yml
         with:

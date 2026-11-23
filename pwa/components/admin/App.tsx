@@ -6,6 +6,7 @@ import authProvider from "../common/authProvider";
 import { getAuthHeaders } from "../common/api";
 import { hasRole, ROLE_ADMIN } from "../common/permissions";
 import Dashboard from "./Dashboard";
+import Integrity from "./Integrity";
 import { InstanceList, InstanceShow } from "./instances";
 import Layout from "./Layout";
 import LoginPage from "./LoginPage";
@@ -27,7 +28,7 @@ const dataProvider = hydraDataProvider({
   apiDocumentationParser: () => parseHydraDocumentation(window.origin, { headers: getAuthHeaders }),
 });
 
-/** The maintainer PWA: report triage for ROLE_MAINTAINER, instances and stats for ROLE_ADMIN */
+/** The maintainer PWA: report triage for ROLE_MAINTAINER, instances, stats and integrity for ROLE_ADMIN */
 const App = () => (
   <HydraAdmin
     authProvider={authProvider}
@@ -45,6 +46,7 @@ const App = () => (
         {hasRole(permissions, ROLE_ADMIN) && <Resource name={INSTANCES} list={InstanceList} show={InstanceShow} options={{ label: "Instances" }} />}
         <CustomRoutes>
           <Route path="/stats" element={<Stats />} />
+          <Route path="/integrity" element={<Integrity />} />
         </CustomRoutes>
       </>
     )}

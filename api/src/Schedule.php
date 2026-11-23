@@ -25,6 +25,8 @@ final class Schedule implements ScheduleProviderInterface
         return (new SymfonySchedule())
             // Retention: triaged reports older than REPORT_RETENTION_MONTHS, retired instances without reports
             ->add(RecurringMessage::every('1 day', new RunCommandMessage('app:reports:purge'), from: new \DateTimeImmutable('03:17')))
+            // Integrity check of the worker's own files (ADR 0013); the api checks on start
+            ->add(RecurringMessage::every('1 day', new RunCommandMessage('app:integrity:check --role=worker'), from: new \DateTimeImmutable('04:41')))
             ->stateful($this->cache) // ensure missed tasks are executed
             ->processOnlyLastMissedRun(true) // ensure only last missed task is run
         ;
