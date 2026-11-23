@@ -25,9 +25,7 @@ RUN npm install -g corepack@latest && \
 	corepack prepare --activate pnpm@latest && \
 	pnpm config -g set store-dir /.pnpm-store
 
-# Next.js collects completely anonymous telemetry data about general usage.
-# Learn more here: https://nextjs.org/telemetry
-# Delete the following line in case you want to enable telemetry during dev and build.
+# No Next.js telemetry (https://nextjs.org/telemetry): privacy first. Keep it disabled; package.json scripts set it too.
 ENV NEXT_TELEMETRY_DISABLED=1
 
 
@@ -65,7 +63,6 @@ ENV APP_VERSION=${APP_VERSION}
 WORKDIR /srv/app
 
 ENV NODE_ENV=production
-# Delete the following line in case you want to enable telemetry during runtime.
 ENV NEXT_TELEMETRY_DISABLED=1
 
 RUN addgroup --gid 1001 nodejs; \

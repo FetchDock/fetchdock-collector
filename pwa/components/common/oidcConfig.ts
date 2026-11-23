@@ -1,3 +1,6 @@
+import type { GetServerSidePropsContext } from "next";
+import { contentSecurityPolicy } from "./csp";
+
 /** The PWA's OpenID Connect client settings */
 export type OidcConfig = {
   issuer: string | null;
@@ -24,9 +27,12 @@ export const readOidcConfig = (): OidcConfig => ({
 /** Props of the pages that use the authProvider */
 export type OidcPageProps = { oidc: OidcConfig };
 
-export const getOidcServerSideProps = async (): Promise<{ props: OidcPageProps }> => ({
-  props: { oidc: readOidcConfig() },
-});
+export const getOidcServerSideProps = async ({ res }: GetServerSidePropsContext): Promise<{ props: OidcPageProps }> => {
+  const oidc = readOidcConfig();
+  res.setHeader("Content-Security-Policy", contentSecurityPolicy(oidc.issuer));
+
+  return { props: { oidc } };
+};
 
 let current: OidcConfig | null = null;
 
