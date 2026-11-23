@@ -73,7 +73,7 @@ Secrets only live in Portainer and GitHub environments. This repository is publi
 | `CADDY_MERCURE_JWT_SECRET` | Random, **different** per stack |
 | `CADDY_MERCURE_SUBSCRIBER_JWT_SECRET` | Optional separate key for subscriber tokens. Defaults to `CADDY_MERCURE_JWT_SECRET` |
 | `TRUSTED_PROXIES` | Must include the reverse proxy |
-| `TRUSTED_HOSTS`, `CORS_ALLOW_ORIGIN` | Optional, default to `SERVER_NAME` |
+| `TRUSTED_HOSTS`, `CORS_ALLOW_ORIGIN` | Optional, default to `SERVER_NAME` (`TRUSTED_HOSTS` also allows `php` and `localhost`, for the healthcheck) |
 | `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_VERSION` | The stack's own database |
 | `OIDC_AUDIENCE` | The OIDC application's client ID (the access token's audience) |
 | `OIDC_ISSUER`, `OIDC_DISCOVERY_BASE_URI` | E.g. `https://auth.example.org/application/o/fetchdock-collector/` for both |
