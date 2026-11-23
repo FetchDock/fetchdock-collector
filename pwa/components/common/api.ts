@@ -1,11 +1,11 @@
 import { HttpError } from "react-admin";
-import { storedUser } from "./oidc";
+import { accessToken } from "./oidc";
 
-/** The Authorization header for API calls, with the maintainer's access token */
-export const getAuthHeaders = (): Record<string, string> => {
-  const user = storedUser();
+/** The Authorization header for API calls, with the maintainer's access token (renewed first if it's expiring) */
+export const getAuthHeaders = async (): Promise<Record<string, string>> => {
+  const token = await accessToken();
 
-  return user && !user.expired ? { Authorization: `Bearer ${user.access_token}` } : {};
+  return token ? { Authorization: `Bearer ${token}` } : {};
 };
 
 /**
@@ -17,7 +17,7 @@ export const apiFetch = async <T = unknown>(path: string, init: RequestInit = {}
     ...init,
     headers: {
       Accept: "application/ld+json",
-      ...getAuthHeaders(),
+      ...(await getAuthHeaders()),
       ...(init.headers as Record<string, string> | undefined),
     },
   });

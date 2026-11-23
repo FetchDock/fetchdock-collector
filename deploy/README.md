@@ -26,7 +26,11 @@ needed: staging doesn't read production.
 One application per stack, both **public clients** (authorization code with PKCE, no client secret: the PWA signs in
 in the browser with `oidc-client-ts`):
 - Redirect URI `https://<host>/admin/auth-callback`.
-- Scopes `openid profile email offline_access`.
+- Scopes `openid profile email offline_access`. Authentik only issues a refresh token when the provider has the
+  `offline_access` scope mapping (*Advanced protocol settings → Scopes*: add
+  `authentik default OAuth Mapping: OpenID 'offline_access'`). Without it the PWA can't renew the access token
+  (5 minutes by default) and has to send the maintainer back through the IdP each time it expires. Silent renewal in an
+  iframe isn't an option: Authentik's flow pages send `X-Frame-Options: DENY`.
 - Put maintainers in a group named `maintainer` and admins in a group named `admin`, and include the `groups` claim in
   the access token. The API maps group names to roles (`maintainer` → `ROLE_MAINTAINER`, `admin` → `ROLE_ADMIN`) and
   rejects every token without `ROLE_MAINTAINER` (or `ROLE_ADMIN`, which includes it).
