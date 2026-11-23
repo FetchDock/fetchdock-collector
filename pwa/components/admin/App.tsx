@@ -1,5 +1,7 @@
 import { HydraAdmin, fetchHydra as baseFetchHydra, hydraDataProvider } from "@api-platform/admin";
 import { parseHydraDocumentation } from "@api-platform/api-doc-parser";
+import { CustomRoutes } from "react-admin";
+import { Route } from "react-router-dom";
 import authProvider from "../common/authProvider";
 import { getAuthHeaders } from "../common/api";
 import Dashboard from "./Dashboard";
@@ -31,7 +33,14 @@ const App = () => (
     requireAuth
     title="FetchDock Collector"
   >
-    {[]}
+    {/*
+      Without any resource or custom route, react-admin treats the admin as "empty" and renders its blank
+      ready page instead of the login and the dashboard. This route keeps it out of that state until the
+      maintainer API adds resources; it then can go.
+    */}
+    <CustomRoutes>
+      <Route path="/dashboard" element={<Dashboard />} />
+    </CustomRoutes>
   </HydraAdmin>
 );
 
