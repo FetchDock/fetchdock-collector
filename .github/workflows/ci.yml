@@ -66,6 +66,11 @@ jobs:
         name: Check that the API requires a maintainer
         run: test "$(curl -sk -o /dev/null -w '%{http_code}' https://localhost/users/me)" = 401
       -
+        name: Check the ingest API (public policy, instance bearer required)
+        run: |
+          curl -sk --fail-with-body https://localhost/v1/policy | jq -e '.version'
+          test "$(curl -sk -o /dev/null -w '%{http_code}' -X POST -H 'Content-Type: application/json' -d '{}' https://localhost/v1/reports)" = 401
+      -
         name: Check that Mercure has no anonymous subscribers
         run: test "$(curl -sk -o /dev/null -m 5 -w '%{http_code}' 'https://localhost/.well-known/mercure?topic=test')" = 401
       -
@@ -87,7 +92,7 @@ jobs:
         name: Check that the contract is exported
         run: |
           docker compose exec -T api bin/console api:openapi:export > /tmp/collector-openapi.json
-          jq -e '.paths["/users/me"]' /tmp/collector-openapi.json > /dev/null
+          jq -e '.paths["/users/me"] and .paths["/v1/reports"] and .paths["/admin/reports"]' /tmp/collector-openapi.json > /dev/null
       -
         name: Stop services
         if: always()

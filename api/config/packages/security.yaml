@@ -2,13 +2,30 @@ security:
     providers:
         oidc_user_provider:
             id: App\Security\OidcUserProvider
+        instance_user_provider:
+            id: App\Security\InstanceUserProvider
     firewalls:
         dev:
             pattern: ^/(_(profiler|wdt)|css|images|js)/
             security: false
 
+        # Ingest API, public endpoints: the policy and the registration ignore any bearer token
+        ingest_public:
+            pattern: ^/v1/(policy|instances)$
+            security: false
+
+        # Ingest API: instances authenticate with their secret as bearer token. Unknown secrets get 401; blocked and
+        # retired instances are authenticated without ROLE_INSTANCE and get 403.
+        ingest:
+            pattern: ^/v1/
+            lazy: true
+            stateless: true
+            provider: instance_user_provider
+            access_token:
+                token_handler: App\Security\InstanceAccessTokenHandler
+            access_denied_handler: App\Security\InstanceAccessDeniedHandler
+
         # Maintainers only (ADR 0014): an OpenID Connect access token from the IdP (Authentik), roles from its claims.
-        # The ingest API (/v1/...) gets its own firewall for instance secrets with the first endpoints.
         main:
             lazy: true
             stateless: true
@@ -37,6 +54,9 @@ security:
         - { path: ^/docs, roles: PUBLIC_ACCESS }
         - { path: ^/contexts, roles: PUBLIC_ACCESS }
         - { path: ^/\.well-known, roles: PUBLIC_ACCESS }
+        # Ingest API: everything but the policy and the registration (firewall ingest_public) needs an active instance
+        - { path: ^/v1/(policy|instances)$, roles: PUBLIC_ACCESS }
+        - { path: ^/v1/, roles: ROLE_INSTANCE }
         # Maintainers are the only users: a valid token without ROLE_MAINTAINER is rejected
         - { path: ^/, roles: ROLE_MAINTAINER }
 

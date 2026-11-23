@@ -1,6 +1,6 @@
 import type { AuthProvider } from "react-admin";
 import { storedUser, userManager } from "./oidc";
-import { fetchRoles } from "./permissions";
+import { fetchRoles, hasRole, ROLE_MAINTAINER } from "./permissions";
 
 const authProvider: AuthProvider & { handleCallback: () => Promise<void> } = {
   login: async () => {
@@ -10,8 +10,9 @@ const authProvider: AuthProvider & { handleCallback: () => Promise<void> } = {
     await userManager().removeUser();
   },
   checkError: async (error) => {
-    // Expired or revoked token, or a user without a collector role
-    if (401 === error?.status || 403 === error?.status) {
+    // Expired or revoked token, or a user without a collector role. A 403 on an admin-only call (a maintainer without
+    // ROLE_ADMIN) keeps the session.
+    if (401 === error?.status || (403 === error?.status && !hasRole(await fetchRoles(), ROLE_MAINTAINER))) {
       await userManager().removeUser();
       throw new Error("Please sign in again.");
     }

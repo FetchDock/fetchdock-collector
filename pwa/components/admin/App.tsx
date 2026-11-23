@@ -1,11 +1,16 @@
 import { HydraAdmin, fetchHydra as baseFetchHydra, hydraDataProvider } from "@api-platform/admin";
 import { parseHydraDocumentation } from "@api-platform/api-doc-parser";
-import { CustomRoutes } from "react-admin";
+import { CustomRoutes, Resource } from "react-admin";
 import { Route } from "react-router-dom";
 import authProvider from "../common/authProvider";
 import { getAuthHeaders } from "../common/api";
+import { hasRole, ROLE_ADMIN } from "../common/permissions";
 import Dashboard from "./Dashboard";
+import { InstanceList, InstanceShow } from "./instances";
+import Layout from "./Layout";
 import LoginPage from "./LoginPage";
+import { INSTANCES, REPORTS, ReportEdit, ReportList, ReportShow } from "./reports";
+import Stats from "./Stats";
 
 const fetchHydra = (url: URL, options?: Record<string, any>) =>
   baseFetchHydra(url, {
@@ -17,12 +22,12 @@ const dataProvider = hydraDataProvider({
   entrypoint: window.origin,
   httpClient: fetchHydra,
   useEmbedded: true,
-  // Live updates (Mercure, POST /users/me/subscription-token) are wired in with the maintainer API
+  // Live updates (Mercure, POST /users/me/subscription-token) are a follow-up
   mercure: false,
   apiDocumentationParser: () => parseHydraDocumentation(window.origin, { headers: getAuthHeaders }),
 });
 
-/** The maintainer PWA. Resources (reports, stats, instances) are declared here as the maintainer API lands. */
+/** The maintainer PWA: report triage for ROLE_MAINTAINER, instances and stats for ROLE_ADMIN */
 const App = () => (
   <HydraAdmin
     authProvider={authProvider}
@@ -30,17 +35,19 @@ const App = () => (
     entrypoint={window.origin}
     loginPage={LoginPage}
     dashboard={Dashboard}
+    layout={Layout}
     requireAuth
     title="FetchDock Collector"
   >
-    {/*
-      Without any resource or custom route, react-admin treats the admin as "empty" and renders its blank
-      ready page instead of the login and the dashboard. This route keeps it out of that state until the
-      maintainer API adds resources; it then can go.
-    */}
-    <CustomRoutes>
-      <Route path="/dashboard" element={<Dashboard />} />
-    </CustomRoutes>
+    {(permissions: unknown) => (
+      <>
+        <Resource name={REPORTS} list={ReportList} show={ReportShow} edit={ReportEdit} options={{ label: "Reports" }} />
+        {hasRole(permissions, ROLE_ADMIN) && <Resource name={INSTANCES} list={InstanceList} show={InstanceShow} options={{ label: "Instances" }} />}
+        <CustomRoutes>
+          <Route path="/stats" element={<Stats />} />
+        </CustomRoutes>
+      </>
+    )}
   </HydraAdmin>
 );
 
