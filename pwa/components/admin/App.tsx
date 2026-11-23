@@ -1,7 +1,8 @@
 import { HydraAdmin, fetchHydra as baseFetchHydra, hydraDataProvider } from "@api-platform/admin";
 import { parseHydraDocumentation } from "@api-platform/api-doc-parser";
 import { CustomRoutes, Resource } from "react-admin";
-import { Route } from "react-router-dom";
+import { useState } from "react";
+import { createHashRouter, Route, RouterProvider } from "react-router-dom";
 import authProvider from "../common/authProvider";
 import { getAuthHeaders } from "../common/api";
 import { resumeSession } from "../common/oidc";
@@ -34,7 +35,7 @@ const dataProvider = hydraDataProvider({
 resumeSession();
 
 /** The maintainer PWA: report triage for ROLE_MAINTAINER, instances, stats and integrity for ROLE_ADMIN */
-const App = () => (
+const Admin = () => (
   <HydraAdmin
     authProvider={authProvider}
     dataProvider={dataProvider}
@@ -58,5 +59,17 @@ const App = () => (
     )}
   </HydraAdmin>
 );
+
+/**
+ * react-admin's own router applies navigations as React transitions, and urgent updates starve them. Signed out, the
+ * redirect to the login page never rendered: the logout that sends there also clears the query cache, the auth check
+ * runs again, fails, and logs out again (thousands of times per second, freezing the page). Our router applies
+ * navigations right away; react-admin uses the router it finds instead of creating one.
+ */
+const App = () => {
+  const [router] = useState(() => createHashRouter([{ path: "*", element: <Admin /> }]));
+
+  return <RouterProvider router={router} useTransitions={false} />;
+};
 
 export default App;

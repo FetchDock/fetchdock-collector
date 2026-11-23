@@ -89,6 +89,28 @@ final class AdminReportTest extends ApiTestCase
         self::assertGreaterThan(new \DateTimeImmutable('-1 minute'), new \DateTimeImmutable($body['updatedAt']));
     }
 
+    public function testAdminWithoutMaintainerRoleListsShowsAndTriagesReports(): void
+    {
+        // The in-memory "admin" has ROLE_ADMIN only, like an IdP user in the "admin" group but not in "maintainer":
+        // the role hierarchy grants everything ROLE_MAINTAINER can do
+        $report = ReportFactory::createOne(['status' => ReportStatus::New]);
+        ReportFactory::createOne();
+
+        self::assertSame(2, self::createClient()->request('GET', '/admin/reports', ['auth_basic' => self::ADMIN])->toArray()['totalItems']);
+        self::assertResponseIsSuccessful();
+
+        self::createClient()->request('GET', '/admin/reports/'.$report->getId(), ['auth_basic' => self::ADMIN]);
+        self::assertResponseIsSuccessful();
+
+        $response = self::createClient()->request('PATCH', '/admin/reports/'.$report->getId(), [
+            'auth_basic' => self::ADMIN,
+            'headers' => ['Content-Type' => 'application/merge-patch+json'],
+            'json' => ['status' => 'acknowledged'],
+        ]);
+        self::assertResponseIsSuccessful();
+        self::assertSame('acknowledged', $response->toArray()['status']);
+    }
+
     public function testTriageValidation(): void
     {
         $report = ReportFactory::createOne();
