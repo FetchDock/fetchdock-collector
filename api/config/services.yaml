@@ -16,6 +16,11 @@ parameters:
     oidc.discovery_base_uri: '%env(default:oidc_defaults_placeholder:OIDC_DISCOVERY_BASE_URI)%'
     oidc_defaults_claim: 'sub'
     oidc.claim: '%env(default:oidc_defaults_claim:OIDC_CLAIM)%'
+    # More IdP groups (comma-separated names) granting ROLE_ADMIN or ROLE_MAINTAINER, besides "admin" and "maintainer"
+    env(OIDC_ADMIN_GROUPS): ''
+    env(OIDC_MAINTAINER_GROUPS): ''
+    oidc.admin_groups: '%env(csv:OIDC_ADMIN_GROUPS)%'
+    oidc.maintainer_groups: '%env(csv:OIDC_MAINTAINER_GROUPS)%'
 
     app_version_default: 'dev'
     app.version: '%env(default:app_version_default:APP_VERSION)%'

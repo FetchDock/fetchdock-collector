@@ -20,6 +20,8 @@ services:
       OIDC_CLIENT_ID: ${OIDC_CLIENT_ID:-}
       OIDC_ISSUER: ${OIDC_ISSUER:-}
       OIDC_DISCOVERY_BASE_URI: ${OIDC_DISCOVERY_BASE_URI:-}
+      OIDC_ADMIN_GROUPS: ${OIDC_ADMIN_GROUPS:-}
+      OIDC_MAINTAINER_GROUPS: ${OIDC_MAINTAINER_GROUPS:-}
       NODE_MODE: php
     volumes:
       - caddy_data:/data

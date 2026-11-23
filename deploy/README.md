@@ -81,6 +81,7 @@ Secrets only live in Portainer and GitHub environments. This repository is publi
 | `POSTGRES_HOST`, `POSTGRES_PORT`, `POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`, `POSTGRES_VERSION` | The stack's own database |
 | `OIDC_AUDIENCE` | The OIDC application's client ID (the access token's audience) |
 | `OIDC_ISSUER`, `OIDC_DISCOVERY_BASE_URI` | E.g. `https://auth.example.org/application/o/fetchdock-collector/` for both |
+| `OIDC_ADMIN_GROUPS`, `OIDC_MAINTAINER_GROUPS` | Optional, comma-separated IdP group names (case-insensitive) that grant `ROLE_ADMIN` / `ROLE_MAINTAINER`, besides the groups `admin` and `maintainer`. E.g. the group that makes someone a fetchdock-server admin |
 | `NEXT_PUBLIC_OIDC_ISSUER`, `NEXT_PUBLIC_OIDC_CLIENT_ID` | Same values, for the PWA (read at request time) |
 | `NEXT_PUBLIC_OIDC_REDIRECT_URI` | Optional, defaults to `https://${SERVER_NAME}/admin/auth-callback` |
 | `REPORT_RETENTION_MONTHS` | Optional, default `24`: triaged reports (resolved, won't fix, duplicate) older than this are purged |
