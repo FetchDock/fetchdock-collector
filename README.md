@@ -5,6 +5,8 @@ Receives the failure reports that [FetchDock](https://github.com/FetchDock/fetch
 - **Instances** register once (`POST /v1/instances`) and authenticate with their own secret. The ingest API is versioned under `/v1`.
 - **Maintainers** sign in to the PWA (OIDC) to triage reports and see aggregated stats.
 - **Privacy:** reports are stored as the user saw and approved them. The privacy policy is versioned in this repo and served at `/v1/policy`.
+  No telemetry or third-party requests: Next.js and react-admin telemetry are disabled, and the PWA's
+  Content-Security-Policy (`pwa/components/common/csp.js`) lets the browser contact only this origin and the IdP.
 
 The repo is public so that anyone can check what the collector stores and for how long.
 
