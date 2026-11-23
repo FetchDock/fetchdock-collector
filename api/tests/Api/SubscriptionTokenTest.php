@@ -27,6 +27,13 @@ final class SubscriptionTokenTest extends ApiTestCase
         self::assertArrayNotHasKey('publish', $claims['mercure']);
     }
 
+    public function testAdminWithoutMaintainerRoleGetsAToken(): void
+    {
+        self::createClient()->request('POST', '/users/me/subscription-token', ['auth_basic' => ['admin', 'adminpass']]);
+
+        self::assertResponseIsSuccessful();
+    }
+
     public function testUserWithoutCollectorRoleGetsNoToken(): void
     {
         self::createClient()->request('POST', '/users/me/subscription-token', ['auth_basic' => ['user', 'userpass']]);
