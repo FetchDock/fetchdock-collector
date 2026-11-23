@@ -20,6 +20,13 @@ parameters:
     app_version_default: 'dev'
     app.version: '%env(default:app_version_default:APP_VERSION)%'
 
+    # Integrity check (ADR 0013, collector#5): INTEGRITY_CHECK_ONLINE=false skips fetching the official manifest digest
+    # from GitHub, so the status can't get past "unknown"
+    env(INTEGRITY_CHECK_ONLINE): 'true'
+    app.integrity.check_online: '%env(bool:INTEGRITY_CHECK_ONLINE)%'
+    # Development has no manifest: report "verified" so the UI can be worked on
+    app.integrity.trust_dev: false
+
 services:
     _defaults:
         autowire: true
@@ -39,3 +46,7 @@ services:
                 class: Symfony\Component\Mercure\Jwt\LcobucciFactory
                 arguments: ['%app.mercure.publisher_jwt_secret%']
             $publish: ['*']
+
+when@dev:
+    parameters:
+        app.integrity.trust_dev: true
