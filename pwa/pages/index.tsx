@@ -14,7 +14,12 @@ const Home = () => (
     </p>
     <ul className="list-disc pl-6 space-y-2">
       <li>
-        Source code, privacy policy and retention rules:{" "}
+        <Link className="underline" href="/policy">
+          Privacy policy
+        </Link>
+      </li>
+      <li>
+        Source code and retention rules:{" "}
         <a className="underline" href="https://github.com/FetchDock/fetchdock-collector">
           github.com/FetchDock/fetchdock-collector
         </a>

@@ -11,7 +11,7 @@ security:
 
         # Ingest API, public endpoints: the policy, the registration and the integrity status ignore any bearer token
         ingest_public:
-            pattern: ^/v1/(policy|instances|integrity)$
+            pattern: ^/v1/(policy(/[^/]+)?|instances|integrity)$
             security: false
 
         # Ingest API: instances authenticate with their secret as bearer token. Unknown secrets get 401; blocked and
@@ -56,7 +56,7 @@ security:
         - { path: ^/\.well-known, roles: PUBLIC_ACCESS }
         # Ingest API: everything but the policy, the registration and the integrity status (firewall ingest_public) needs
         # an active instance
-        - { path: ^/v1/(policy|instances|integrity)$, roles: PUBLIC_ACCESS }
+        - { path: ^/v1/(policy(/[^/]+)?|instances|integrity)$, roles: PUBLIC_ACCESS }
         - { path: ^/v1/, roles: ROLE_INSTANCE }
         # Maintainers are the only users: a valid token without ROLE_MAINTAINER is rejected
         - { path: ^/, roles: ROLE_MAINTAINER }

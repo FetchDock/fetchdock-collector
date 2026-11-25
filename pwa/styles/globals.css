@@ -1,1 +1,13 @@
 @import "tailwindcss";
+
+/* The policy pages render Markdown (components/PolicyPage.tsx) */
+@layer components {
+  .policy h1 { @apply text-3xl font-bold mb-4; }
+  .policy h2 { @apply text-xl font-semibold mt-8 mb-3; }
+  .policy p { @apply mb-4 leading-relaxed; }
+  .policy ul { @apply list-disc pl-6 mb-4 space-y-1; }
+  .policy ol { @apply list-decimal pl-6 mb-4 space-y-1; }
+  .policy a { @apply underline; }
+  .policy table { @apply block overflow-x-auto mb-4 text-sm border-collapse; }
+  .policy th, .policy td { @apply border border-gray-400 px-3 py-2 text-left align-top; }
+}
