@@ -1,5 +1,7 @@
 **/*.log
 **/*.md
+# The policy texts ship: GET /v1/policy/{version} serves them, and the integrity manifest covers them
+!policy/*.md
 **/*.php~
 **/*.dist.php
 **/*.dist

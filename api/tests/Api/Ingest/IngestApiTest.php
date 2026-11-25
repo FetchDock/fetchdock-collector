@@ -25,6 +25,35 @@ final class IngestApiTest extends IngestTestCase
         self::assertSame(['version' => '1', 'url' => 'http://localhost/policy', 'acceptedVersions' => ['1']], $response->toArray());
     }
 
+    public function testPolicyTextIsPublic(): void
+    {
+        $response = self::ingest('GET', '/v1/policy/1', 'not-a-secret');
+
+        self::assertResponseIsSuccessful();
+        $body = $response->toArray();
+        self::assertSame(['version', 'current', 'markdown'], array_keys($body));
+        self::assertSame('1', $body['version']);
+        self::assertTrue($body['current']);
+        self::assertStringStartsWith('# FetchDock report collector privacy policy', $body['markdown']);
+    }
+
+    /**
+     * @return iterable<string, array{string}>
+     */
+    public static function unpublishedPolicyVersions(): iterable
+    {
+        yield 'unknown version' => ['0'];
+        yield 'path traversal' => ['..%2F..%2Fcomposer'];
+    }
+
+    #[\PHPUnit\Framework\Attributes\DataProvider('unpublishedPolicyVersions')]
+    public function testPolicyTextIsOnlyServedForPublishedVersions(string $version): void
+    {
+        self::ingest('GET', '/v1/policy/'.$version);
+
+        self::assertResponseStatusCodeSame(404);
+    }
+
     public function testRegisterReturnsTheSecretOnceAndStoresOnlyItsHash(): void
     {
         $response = self::ingest('POST', '/v1/instances', json: ['serverVersion' => '0.8.0', 'acceptedPolicyVersion' => '1']);
